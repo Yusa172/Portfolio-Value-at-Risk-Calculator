@@ -49,6 +49,17 @@ Para confirmar que a instalação funcionou:
 python -c "import var_calculator; print(var_calculator.__version__)"
 ```
 
+## Desenvolvimento
+
+O estilo do código é verificado com o [ruff](https://docs.astral.sh/ruff/), configurado no `pyproject.toml` (regras de estilo, imports ordenados, docstrings no formato NumPy e proibição de `print` no código da biblioteca). Com o ambiente virtual ativo:
+
+```bash
+python -m ruff check .            # lint
+python -m ruff format --check .   # verificar a formatação
+python -m ruff format .           # aplicar a formatação
+python -m pytest                  # testes
+```
+
 ## Roadmap
 
 O desenvolvimento segue um plano de 100 pontos, organizado em dez fases (fundações, retornos e carteira, métodos de VaR, Expected Shortfall, backtesting, stress testing, gráficos, interface, qualidade e versão 1.0). O estado de cada ponto está em [ROADMAP.md](ROADMAP.md).
