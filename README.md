@@ -1,5 +1,7 @@
 # Portfolio Value-at-Risk Calculator
 
+[![CI](https://github.com/Yusa172/Portfolio-Value-at-Risk-Calculator/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Yusa172/Portfolio-Value-at-Risk-Calculator/actions/workflows/ci.yml)
+
 Biblioteca em Python para medir o risco de mercado de uma carteira de ativos através do **Value-at-Risk (VaR)** e do **Expected Shortfall (ES)**. O objetivo é reunir, num só pacote testado e documentado, os métodos mais usados na prática (histórico, paramétrico e Monte Carlo), o backtesting dos resultados e o stress testing da carteira.
 
 > **Estado:** em desenvolvimento inicial. Ainda não há funcionalidades de cálculo; o plano completo está no [roadmap](ROADMAP.md).
@@ -59,6 +61,8 @@ python -m ruff format --check .   # verificar a formatação
 python -m ruff format .           # aplicar a formatação
 python -m pytest                  # testes
 ```
+
+Estas mesmas verificações correm automaticamente no GitHub Actions (`.github/workflows/ci.yml`) em cada *push* e *pull request*, em Python 3.11 e 3.12.
 
 ## Roadmap
 
