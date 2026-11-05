@@ -9,7 +9,10 @@ readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Simão Fiúza" }]
 dynamic = ["version"]
-dependencies = []
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
