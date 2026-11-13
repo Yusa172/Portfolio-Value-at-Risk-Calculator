@@ -2,19 +2,26 @@
 
 Every loader in this module returns prices in the same *wide* layout: one row
 per date (a sorted ``DatetimeIndex`` named ``Date``) and one ``float`` column
-per asset. Missing observations are kept as ``NaN``; cleaning them is a
-separate step.
+per asset. Missing observations are kept as ``NaN`` by the loaders;
+:func:`clean_prices` turns such a table into one that is ready for computing
+returns.
 """
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
-__all__ = ["load_prices_csv"]
+__all__ = ["PriceDataWarning", "clean_prices", "load_prices_csv"]
 
 INDEX_NAME = "Date"
+
+
+class PriceDataWarning(UserWarning):
+    """Warning issued when price data looks wrong but can still be used."""
 
 
 def load_prices_csv(
@@ -180,3 +187,118 @@ def _from_long(
     full = pd.MultiIndex.from_product([dates, tickers])
     table = indexed.reindex(full).to_numpy().reshape(len(dates), len(tickers))
     return pd.DataFrame(table, index=dates, columns=tickers)
+
+
+def clean_prices(
+    prices: pd.DataFrame,
+    *,
+    max_fill: int = 5,
+    drop_incomplete: bool = True,
+) -> pd.DataFrame:
+    r"""Clean a wide price table so that every asset shares the same dates.
+
+    The steps are applied in this order:
+
+    1. Prices that are not strictly positive (or are infinite) are reported
+       with a :class:`PriceDataWarning` and treated as missing. A price
+       :math:`P_t \le 0` is not a valid quote and makes the log return
+       :math:`\ln(P_t / P_{t-1})` undefined.
+    2. Dates on which no asset has a price (for example a holiday common to
+       all markets) are removed.
+    3. Gaps are forward-filled with the last known price of the same asset,
+       for at most ``max_fill`` consecutive dates. This is the usual treatment
+       for assets that trade on different calendars: a stale price implies a
+       zero return on the missing day. The limit keeps long gaps (a suspended
+       or delisted asset) from being filled with a flat line, which would
+       understate volatility. Values before the first observation of an asset
+       are never filled, so no future information is used.
+    4. If ``drop_incomplete`` is true, dates on which any asset is still
+       missing are removed, leaving the common sample of all assets.
+
+    The input is not modified.
+
+    Parameters
+    ----------
+    prices : pandas.DataFrame
+        Prices in wide layout, as returned by :func:`load_prices_csv`: a
+        ``DatetimeIndex`` without repeated dates and one numeric column per
+        asset.
+    max_fill : int
+        Maximum number of consecutive missing dates to forward-fill for each
+        asset. Use ``0`` to disable forward-filling.
+    drop_incomplete : bool
+        Whether to drop the dates on which at least one asset has no price
+        after forward-filling. If false, those gaps are kept as ``NaN``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Cleaned prices sorted by date, with ``float`` columns in the original
+        order. With ``drop_incomplete=True`` the table has no missing values.
+
+    Raises
+    ------
+    TypeError
+        If ``prices`` is not a DataFrame, its index is not a
+        ``DatetimeIndex``, a column is not numeric or ``max_fill`` is not an
+        integer.
+    ValueError
+        If ``max_fill`` is negative, the table has no columns, a date is
+        missing or repeated, or no dates are left after cleaning.
+
+    Warns
+    -----
+    PriceDataWarning
+        If any price is non-positive or infinite.
+    """
+    _check_price_table(prices)
+    if isinstance(max_fill, bool) or not isinstance(max_fill, int):
+        raise TypeError("max_fill must be an integer")
+    if max_fill < 0:
+        raise ValueError(f"max_fill must be non-negative, got {max_fill}")
+
+    cleaned = _mask_invalid_prices(prices.astype(float).sort_index())
+    cleaned = cleaned.dropna(how="all")
+    if max_fill > 0:
+        cleaned = cleaned.ffill(limit=max_fill)
+    if drop_incomplete:
+        cleaned = cleaned.dropna(how="any")
+    if cleaned.empty:
+        raise ValueError("no dates are left after cleaning the prices")
+    return cleaned
+
+
+def _check_price_table(prices: pd.DataFrame) -> None:
+    """Raise if ``prices`` is not a wide, date-indexed, numeric table."""
+    if not isinstance(prices, pd.DataFrame):
+        raise TypeError("prices must be a pandas DataFrame")
+    if not isinstance(prices.index, pd.DatetimeIndex):
+        raise TypeError("prices must be indexed by a DatetimeIndex")
+    if prices.shape[1] == 0:
+        raise ValueError("prices has no asset columns")
+    if prices.index.hasnans:
+        raise ValueError("the index of prices has missing dates")
+    if prices.index.has_duplicates:
+        repeated = prices.index[prices.index.duplicated()][0].date()
+        raise ValueError(f"duplicate date in prices: {repeated}")
+    for column, dtype in prices.dtypes.items():
+        is_numeric = pd.api.types.is_numeric_dtype(dtype)
+        if not is_numeric or pd.api.types.is_bool_dtype(dtype):
+            raise TypeError(f"column {column!r} of prices is not numeric")
+
+
+def _mask_invalid_prices(prices: pd.DataFrame) -> pd.DataFrame:
+    """Replace non-positive or infinite prices with ``NaN``, with a warning."""
+    invalid = (prices <= 0) | np.isinf(prices)
+    counts = invalid.sum()
+    counts = counts[counts > 0]
+    if counts.empty:
+        return prices
+    detail = ", ".join(f"{column} ({count})" for column, count in counts.items())
+    warnings.warn(
+        f"{int(counts.sum())} non-positive or infinite price(s) treated as "
+        f"missing: {detail}",
+        PriceDataWarning,
+        stacklevel=3,
+    )
+    return prices.mask(invalid)
