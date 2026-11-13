@@ -10,7 +10,7 @@ Plano de desenvolvimento do Portfolio Value-at-Risk Calculator em 100 pontos. Ca
 - [x] **4. Lint e formatação** — ruff (lint e format) configurado e aplicado a todo o código.
 - [x] **5. CI** — GitHub Actions a correr ruff e pytest em Python 3.11 e 3.12 em cada push.
 - [x] **6. Dados de exemplo** — `scripts/make_sample_data.py` gera preços sintéticos reprodutíveis (seed fixa) para 4 ativos em `data/sample_prices.csv`.
-- [ ] **7. Carregar preços** — `data.load_prices_csv()` lê CSV em formato largo ou longo e devolve um DataFrame indexado por data, com validação de colunas.
+- [x] **7. Carregar preços** — `data.load_prices_csv()` lê CSV em formato largo ou longo e devolve um DataFrame indexado por data, com validação de colunas.
 - [ ] **8. Limpeza de dados** — alinhar datas entre ativos, forward-fill limitado, remover linhas vazias e avisar sobre preços ≤ 0.
 - [ ] **9. Download de preços** — `data.download_prices()` com yfinance (dependência opcional) e cache local em `data/cache/` (ignorado no git).
 - [ ] **10. Testes de dados** — leitura, limpeza e erros; o download é testado com mock, sem rede.

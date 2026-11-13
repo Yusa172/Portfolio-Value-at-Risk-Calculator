@@ -4,7 +4,7 @@
 
 Biblioteca em Python para medir o risco de mercado de uma carteira de ativos através do **Value-at-Risk (VaR)** e do **Expected Shortfall (ES)**. O objetivo é reunir, num só pacote testado e documentado, os métodos mais usados na prática (histórico, paramétrico e Monte Carlo), o backtesting dos resultados e o stress testing da carteira.
 
-> **Estado:** em desenvolvimento inicial. Ainda não há funcionalidades de cálculo; o plano completo está no [roadmap](ROADMAP.md).
+> **Estado:** em desenvolvimento inicial. Já é possível carregar preços a partir de ficheiros CSV, mas ainda não há funcionalidades de cálculo; o plano completo está no [roadmap](ROADMAP.md).
 
 ## O que é o VaR?
 
@@ -50,6 +50,25 @@ Para confirmar que a instalação funcionou:
 ```bash
 python -c "import var_calculator; print(var_calculator.__version__)"
 ```
+
+## Carregar preços
+
+A função `load_prices_csv` lê um ficheiro CSV de preços e devolve um `DataFrame` do pandas indexado por data (ordenado por ordem crescente), com uma coluna por ativo:
+
+```python
+from var_calculator.data import load_prices_csv
+
+prices = load_prices_csv("data/sample_prices.csv")
+```
+
+São aceites dois formatos, detetados a partir do cabeçalho:
+
+- **largo** — uma coluna de datas e uma coluna de preços por ativo (`Date,ALFA,BETA,...`);
+- **longo** — uma linha por par (data, ativo), com as colunas `Date`, `Ticker` e `Price`; as restantes colunas são ignoradas.
+
+Os nomes das colunas podem ser alterados com os argumentos `date_column`, `ticker_column` e `price_column`, e são comparados sem distinguir maiúsculas de minúsculas. A função dá erro (`ValueError`) se faltar uma coluna obrigatória, se houver datas inválidas ou repetidas, ou se algum preço não for numérico. Os preços em falta ficam como `NaN`.
+
+O ficheiro `data/sample_prices.csv` contém preços sintéticos de quatro ativos e pode ser gerado de novo com `python scripts/make_sample_data.py`.
 
 ## Desenvolvimento
 
